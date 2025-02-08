@@ -1,0 +1,6 @@
+# Read the CSV file from the URL
+cars <- read.csv("https://storage.googleapis.com/kagglesdsdata/datasets/589/1117/car_data.csv?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=gcp-kaggle-com%40kaggle-161607.iam.gserviceaccount.com%2F20250208%2Fauto%2Fstorage%2Fgoog4_request&X-Goog-Date=20250208T104655Z&X-Goog-Expires=259200&X-Goog-SignedHeaders=host&X-Goog-Signature=06d42a1e13baed3010fbe8eff9db80abc1af5e2a73b6b181249e440e57aa910a0a080a54e92d51335c67fe1271bf39c5efe5da92741c0c21e1d77a567b634b0ea63996537b0a4061d1e5b3908a8b790e028634150fe124c9d7eccc8cd3a839feebd9e24c816afa0d40e8dcd1ff99e02256edc9d3cb26a20366007f399b982a3605192ee3b603d5a4506fed393e1c61d7fc2495b0ec9083ca4f7026aea33570105e235e54882d31532830647fff93b8ab76dac346dd2ef808fa15e613983aef6aacc69a08a5d7e85bccbf9fe8a199b204c4c041b4df2fbffa93acd4716d5e4c8629b35364ef0fb02d345f1e2bfe8fb227f7525079014c9ab21fa666e39e767d84")
+# Check the first few rows
+head(cars)
+# Data summary
+summary(cars)
