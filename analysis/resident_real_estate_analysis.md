@@ -10,9 +10,9 @@ Mar 2025
 
 # Introduction
 Using LDA model, I want to answer these questions:
-1. What are the topics that experts consider important for U.S real-estate each year?
-2. How topics change throughout the years?
-3. Are the topics ussually the same or different throughout the year?
+1. What are the factors that effect prices in residential real-estate?
+2. Is the these topics make sense?
+3. Are the topics ?
 
 # Codes
 ## Step 1: Load Required Libraries
@@ -25,6 +25,8 @@ install.packages("tidytext")
 install.packages("ggplot2")
 install.packages("wordcloud")
 install.packages("LDAvis")
+install.packages("textstem")   # For stemming
+install.packages("stringdist") # For fuzzy matching
 
 # Load libraries
 library(pdftools)
@@ -34,21 +36,17 @@ library(tidytext)
 library(ggplot2)
 library(wordcloud)
 library(LDAvis)
+library(textstem)  # For stemming
+library(stringdist)  # For fuzzy matching
 ```
 ## Step 2: Extract Text from the PDF
 ``` r
-# Define the PDF URL
-pdf_url <- "https://www.pwc.com/us/en/industries/financial-services/images/pwc-etre-2025.pdf"
-
-# Download PDF
-temp_pdf <- tempfile(fileext = ".pdf")
-download.file(pdf_url, temp_pdf, mode = "wb")
-
-# Extract text from all pages
-pdf_text_data <- pdf_text(temp_pdf)
-
-# Combine text from all pages
-full_text <- paste(pdf_text_data, collapse = " ")
+# Define the PDF file
+resident_real_data<-"~/Downloads/JHS/726/final_project_pdf/resident_real_estate"
+resident_data_file<-list.files(resident_real_data, pattern = "\\.pdf$", full.names = TRUE)
+resident_pdf_texts <- lapply(resident_data_file, pdf_text)
+resident_all_text <- unlist(resident_pdf_texts)
+resident_all_text <- paste(resident_all_text, collapse = " ") # Merge text into a single string
 ```
 ## Step 3: Preprocess the Text**
 
@@ -59,17 +57,22 @@ full_text <- paste(pdf_text_data, collapse = " ")
 • **Convert to a Document-Term Matrix (DTM)** for LDA
 ``` r
 # Convert text into a corpus
-docs <- Corpus(VectorSource(full_text))
+resident_docs <- Corpus(VectorSource(resident_all_text))
 
-# Clean the text
-docs <- tm_map(docs, content_transformer(tolower))   # Convert to lowercase
-docs <- tm_map(docs, removePunctuation)              # Remove punctuation
-docs <- tm_map(docs, removeNumbers)                  # Remove numbers
-docs <- tm_map(docs, removeWords, stopwords("en"))   # Remove stopwords
-docs <- tm_map(docs, stripWhitespace)                # Remove extra spaces
+## Clean the text
+resident_docs <- tm_map(resident_docs, content_transformer(tolower))
+## Convert to lowercase
+resident_docs <- tm_map(resident_docs, removePunctuation)
+## Remove punctuation
+resident_docs <- tm_map(resident_docs, removeNumbers)
+## Remove numbers
+resident_docs <- tm_map(resident_docs, removeWords, stopwords("en"))
+## Remove stopwords
+resident_docs <- tm_map(resident_docs, stripWhitespace)
+## Remove extra spaces
 
 # Convert to a Document-Term Matrix (DTM)
-dtm <- DocumentTermMatrix(docs)
+dtm <- DocumentTermMatrix(resident_docs)
 
 # Remove sparse terms
 dtm <- removeSparseTerms(dtm, 0.95)  # Keep only words in at least 5% of documents
@@ -83,17 +86,70 @@ num_topics <- 5
 lda_model <- LDA(dtm, k = num_topics, control = list(seed = 42))
 
 # Extract topics
-lda_topics <- terms(lda_model, 10)  # Show top 10 words per topic
+lda_topics <- terms(lda_model, 20)  # Show top 10 words per topic
 lda_topics
 ```
-## Step 5: Visualize the LDA Topics
+## Step 5: clean up unnecessary words
+```r
+library(textstem)  # For stemming
+library(stringdist)  # For fuzzy matching
+
+# Extract topic words
+topic <- 6  
+words <- posterior(lda_model)$terms[topic, ]  
+
+# Sort and get top words
+topwords <- head(sort(words, decreasing = TRUE), n = 50)
+
+# Remove unwanted characters (e.g., "-", "–")
+word_names <- gsub("[-–]", " ", names(topwords))  # Replace "-" with space
+
+# Stem words to their base form (e.g., "prices" -> "price")
+word_names_stemmed <- lemmatize_words(word_names)
+
+# Convert to lowercase to avoid case-sensitive duplicates
+word_names_stemmed <- tolower(word_names_stemmed)
+
+# Identify near-duplicates using string distance
+unique_words <- c()
+word_probs <- c()
+
+for (i in seq_along(word_names_stemmed)) {
+  word <- word_names_stemmed[i]
+  prob <- topwords[i]
+
+  # Check if the word (or similar words) already exists
+  if (!any(stringdist::stringdist(word, unique_words) <= 1)) {  # Allow small variations
+    unique_words <- c(unique_words, word)
+    word_probs <- c(word_probs, prob)
+  }
+}
+
+# Create cleaned word-probability list
+topwords_cleaned <- setNames(word_probs, unique_words)
+
+# Print cleaned words
+print(topwords_cleaned)
+
+# Define a list of irrelevant words to remove
+stopwords_custom <- c("doi", "yes", "one", "will", "per", "year","prices","estate","price")  # Add more if needed
+
+# Remove unwanted characters
+word_names <- gsub("[-–]", "", names(topwords_cleaned))  # Remove special characters
+word_names <- gsub("[^a-zA-Z]", "", word_names)  # Remove any non-alphabetic characters
+
+# Remove stopwords
+word_names <- word_names[!word_names %in% stopwords_custom]
+
+# Apply cleaned word names back to the probabilities
+topwords_cleaned <- topwords_cleaned[names(topwords_cleaned) %in% word_names]
+names(topwords_cleaned) <- word_names  # Update names
+
+# Print cleaned results
+print(topwords_cleaned)
+```
+## Step 6: Visualize the LDA Topics
 ``` r
-# Test multiple values for K (number of topics)
-topic_range <- seq(2, 10, by = 2)  # Try 2, 4, 6, 8, 10 topics
-perplexity_scores <- sapply(topic_range, function(k) {
-  model <- LDA(dtm, k = k, control = list(seed = 42))
-  perplexity(model)
-})
 
 # Plot Perplexity Scores
 topic <- 6  # Select the topic to visualize
@@ -102,7 +158,7 @@ topwords <- head(sort(words, decreasing = TRUE), n = 50)  # Get top 50 words
 head(topwords)  # Print top words with probabilities
 
 wordcloud(names(topwords), topwords)
-
+wordcloud(names(topwords_cleaned), topwords_cleaned)
 library(LDAvis)   
 
 dtm = dtm[slam::row_sums(dtm) > 0, ]
@@ -113,6 +169,8 @@ doc.length = slam::row_sums(dtm)
 term.freq = slam::col_sums(dtm)[match(vocab, colnames(dtm))]
 
 json = createJSON(phi = phi, theta = theta, vocab = vocab,
+ doc.length = doc.length, term.frequency = term.freq)
+serVis(json)
      doc.length = doc.length, term.frequency = term.freq)
 serVis(json)
 ```
