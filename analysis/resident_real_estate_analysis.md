@@ -86,79 +86,90 @@ num_topics <- 5
 lda_model <- LDA(dtm, k = num_topics, control = list(seed = 42))
 
 # Extract topics
-lda_topics <- terms(lda_model, 20)  # Show top 10 words per topic
+lda_topics <- terms(lda_model, 10)  # Show top 10 words per topic
 lda_topics
-```
-## Step 5: clean up unnecessary words
-```r
-library(textstem)  # For stemming
-library(stringdist)  # For fuzzy matching
 
-# Extract topic words
-topic <- 6  
-words <- posterior(lda_model)$terms[topic, ]  
-
-# Sort and get top words
-topwords <- head(sort(words, decreasing = TRUE), n = 50)
-
-# Remove unwanted characters (e.g., "-", "–")
-word_names <- gsub("[-–]", " ", names(topwords))  # Replace "-" with space
-
-# Stem words to their base form (e.g., "prices" -> "price")
-word_names_stemmed <- lemmatize_words(word_names)
-
-# Convert to lowercase to avoid case-sensitive duplicates
-word_names_stemmed <- tolower(word_names_stemmed)
-
-# Identify near-duplicates using string distance
-unique_words <- c()
-word_probs <- c()
-
-for (i in seq_along(word_names_stemmed)) {
-  word <- word_names_stemmed[i]
-  prob <- topwords[i]
-
-  # Check if the word (or similar words) already exists
-  if (!any(stringdist::stringdist(word, unique_words) <= 1)) {  # Allow small variations
-    unique_words <- c(unique_words, word)
-    word_probs <- c(word_probs, prob)
+# Clean up unnnecessary words
+clean_lda_topics <- lapply(lda_topics_df, function(words) {
+  
+  # Remove unwanted symbols like "-" and "–"
+    words <- gsub("[-–]", "", words)
+  
+  # Convert words to lowercase
+  words <- tolower(words)
+  
+  # Apply stemming (e.g., "prices" -> "price")
+  words <- lemmatize_words(words)
+  
+  # Remove near-duplicates using fuzzy matching
+  unique_words <- c()
+  for (word in words) {
+    if (!any(stringdist::stringdist(word, unique_words) <= 1)) {  # Adjust similarity threshold if needed
+      unique_words <- c(unique_words, word)
+    }
   }
-}
+  
+  # Define custom stopwords to remove
+  stopwords_custom <- c("doi", "yes", "one", "will", "per", "year", "prices", "estate", "price","ables", "able", "-")  # Add more if needed
+  unique_words <- unique_words[!unique_words %in% stopwords_custom]
+  
+  return(unique_words)  # Return cleaned words for this topic
+})
 
-# Create cleaned word-probability list
-topwords_cleaned <- setNames(word_probs, unique_words)
+# Step 4: Ensure All Topics Have Equal Word Counts
+max_words <- max(sapply(clean_lda_topics, length))  # Find the longest topic
 
-# Print cleaned words
-print(topwords_cleaned)
+clean_lda_topics_equal <- lapply(clean_lda_topics, function(words) {
+  length(words) <- max_words  # Fill shorter topics with NA
+  return(words)
+})
 
-# Define a list of irrelevant words to remove
-stopwords_custom <- c("doi", "yes", "one", "will", "per", "year","prices","estate","price")  # Add more if needed
+# Step 5: Convert to Data Frame After Cleaning
+lda_topics_cleaned <- as.data.frame(clean_lda_topics_equal)
 
-# Remove unwanted characters
-word_names <- gsub("[-–]", "", names(topwords_cleaned))  # Remove special characters
-word_names <- gsub("[^a-zA-Z]", "", word_names)  # Remove any non-alphabetic characters
-
-# Remove stopwords
-word_names <- word_names[!word_names %in% stopwords_custom]
-
-# Apply cleaned word names back to the probabilities
-topwords_cleaned <- topwords_cleaned[names(topwords_cleaned) %in% word_names]
-names(topwords_cleaned) <- word_names  # Update names
-
-# Print cleaned results
-print(topwords_cleaned)
+# Print the cleaned topic words
+print(lda_topics_cleaned)
 ```
-## Step 6: Visualize the LDA Topics
+
+## Step 5: Visualize the LDA Topics
 ``` r
 
-# Plot Perplexity Scores
-topic <- 6  # Select the topic to visualize
-words <- posterior(lda_model)$terms[topic, ]  # Get term probabilities for the topic
-topwords <- head(sort(words, decreasing = TRUE), n = 50)  # Get top 50 words
-head(topwords)  # Print top words with probabilities
+# Plot wordcloud
+## Convert to named vector for word cloud
+word_freq <- setNames(topwords_cleaned, names(topwords_cleaned))
 
-wordcloud(names(topwords), topwords)
-wordcloud(names(topwords_cleaned), topwords_cleaned)
+## Plot word cloud
+wordcloud(names(word_freq), freq = word_freq, min.freq = 1, colors = brewer.pal(8, "Dark2"))
+
+# bar plot
+## Convert to data frame
+df <- data.frame(
+  word = names(topwords_cleaned),
+  probability = topwords_cleaned
+)
+
+## Plot
+ggplot(df, aes(x = reorder(word, probability), y = probability)) +
+  geom_bar(stat = "identity", fill = "blue", alpha = 0.7) +
+  coord_flip() +  # Flip to make text readable
+  labs(title = "Top Words in LDA Topic", x = "Word", y = "Probability") +
+  theme_minimal()
+# heatmap
+install.packages("reshape2")
+library(reshape2)
+
+# Convert topic-word matrix to long format
+lda_matrix <- posterior(lda_model)$terms[, 1:10]  # Top 10 words per topic
+lda_df <- melt(lda_matrix)
+
+# Plot heatmap
+ggplot(lda_df, aes(Var2, Var1, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "blue") +
+  labs(title = "LDA Topic-Word Heatmap", x = "Words", y = "Topics") +
+  theme_minimal()
+
+#ovarall
 library(LDAvis)   
 
 dtm = dtm[slam::row_sums(dtm) > 0, ]
@@ -174,3 +185,4 @@ serVis(json)
      doc.length = doc.length, term.frequency = term.freq)
 serVis(json)
 ```
+#  Result
