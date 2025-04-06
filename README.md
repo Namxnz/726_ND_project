@@ -3,12 +3,9 @@ Course project from Theory of Statistic II
 ## Overview
 This project will involve the process of applying theory of statistic in selected paper to a chosen dataset. By complete this project, I will be able to apply the concepts and tools in the course, gain experience in successfully matching model to data, demonstrate a high level of programming competence, explain the mathematical basis for the modeling methodologies used, and produce a detailed written report describing your process and findings.
 ### Topic Areas
-- Decision Theory and Finding Optimal Estimators
-- Density Estimation and Multivariate Models
-- Causal Inference and the Latent Dirichlet Allocation
-- Kernel Methods and Nonparametric Fits
+Causal Inference and the Latent Dirichlet Allocation
 ### Data Sets
-Census, Sports, Cars, Housing, heart-disease and NHANES
+Comercial Housing
 ### Project Step and Timeline
 #### 1. Choose a Topic
 Rank-order your preferences
