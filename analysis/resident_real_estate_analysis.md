@@ -3,10 +3,10 @@ RESIDENT REAL ESTATE
 Nam Dang
 Mar 2025
   - [Introduction](#introduction)
-  - [Codes] (#Codes)
-  - [Result] (#Result)
-  - [Analysis] (#Analysis)
-  - [Conclusion] (#Conclusion)
+  - [Codes](#codes)
+  - [Result](#result)
+  - [Analysis](#analysis)
+  - [Conclusion](#conclusion)
 
 # Introduction
 Using LDA model, I want to answer these questions:
@@ -48,7 +48,7 @@ resident_pdf_texts <- lapply(resident_data_file, pdf_text)
 resident_all_text <- unlist(resident_pdf_texts)
 resident_all_text <- paste(resident_all_text, collapse = " ") # Merge text into a single string
 ```
-## Step 3: Preprocess the Text**
+## Step 3: Preprocess the Text
 
 • **Remove stopwords, punctuation, and numbers**
 
