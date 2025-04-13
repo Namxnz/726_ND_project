@@ -76,7 +76,7 @@ model_data <- full_data %>%
   arrange(date)
 ```
 ## Step 3: Define Prior Belief
-
+### first prior base on LDA model and Economics
 ``` r
 library(brms)
 
@@ -89,7 +89,29 @@ priors <- c(
   set_prior("normal(0, 1)", class = "Intercept")  # weak prior for intercept
 )
 ```
+### Second prior after first Bayesian model: base more on Bayesian results
+```r
+library(brms)
+
+# Prior assumptions (based on economic theory + your topic modeling insights)
+priors <- c(
+  set_prior("normal(0.08, 0.03)", class = "b", coef = "CPIAUCSL"),
+ # ↑ CPI = ↑ Rent
+  set_prior("normal(-0.10, 0.05)", class = "b", coef = "MORTGAGE30US"),
+# ↑ Mortgage = ↓ Rent
+  set_prior("normal(-0.15, 0.05)", class = "b", coef = "UNRATE"),
+ # ↑ Unemployment = ↓ Rent
+  set_prior("normal(0.12, 0.04)", class = "b", coef = "MEHOINUSA646N"),
+# ↑ Income = ↑ Rent
+  set_prior("normal(0, 1)", class = "Intercept"),
+# Weak belief about baseline
+  set_prior("student_t(3, 0, 2.5)", class = "sigma")
+# Robust error model
+)
+```
+
 ## Step 4: Fit the Bayesian Model
+### First model fit before Bayesian simulation
 ```r
 model <- brm(
   formula = rent ~ CPIAUCSL + MORTGAGE30US + UNRATE + MEHOINUSA646N,
@@ -103,10 +125,24 @@ model <- brm(
   control = list(adapt_delta = 0.95)
 )
 ```
-
+### Second model fit after 1st Bayesian simulation
+```r
+# Final brm model
+rent_model <- brm(
+  formula = rent ~ CPIAUCSL + MORTGAGE30US + UNRATE + MEHOINUSA646N,
+  data = model_data,
+  prior = priors,
+  family = student(),
+  chains = 4,
+  iter = 2000,
+  warmup = 500,
+  seed = 1234,
+  control = list(adapt_delta = 0.95))
+```
 ## Step 5: Output and Visualize 
+### Fist simulation output
 ``` r
-summary(model)
+summary(model) 
 plot(model)
 pp_check(model)  # posterior predictive checks
 
@@ -123,5 +159,19 @@ ggplot(model_data, aes(x = date)) +
   geom_line(aes(y = predicted_rent), color = "blue", linetype = "dashed") +
   labs(title = "Actual vs Predicted Rent (Bayesian Regression)", y = "Rent Price")
 ```
+
+### second simulation output
+```r
+summary(rent_model)
+pp_check(rent_model)       # Posterior predictive checks
+plot(rent_model)           # Traceplots for sampling diagnostics
+bayes_R2(rent_model)       # Bayesian R² to assess model fit
+loo(rent_model)            # Leave-one-out cross-validation
+
+```
+
+
+
+
 #  Result
 
