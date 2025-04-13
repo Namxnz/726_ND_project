@@ -77,11 +77,6 @@ model_data <- full_data %>%
 ```
 ## Step 3: Define Prior Belief
 
-• **Remove stopwords, punctuation, and numbers**
-
-• **Tokenization**: Convert text into individual words
-
-• **Convert to a Document-Term Matrix (DTM)** for LDA
 ``` r
 library(brms)
 
