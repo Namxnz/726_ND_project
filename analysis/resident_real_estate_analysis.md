@@ -186,3 +186,4 @@ serVis(json)
 serVis(json)
 ```
 #  Result
+![Result Graph](data/IMG/redident_wordcloud.png)
