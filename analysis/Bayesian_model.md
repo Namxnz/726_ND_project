@@ -4,7 +4,7 @@ Nam Dang
 Mar 2025
   - [Introduction](#introduction)
   - [Codes](#codes)
-  - [Result](#result)
+  - [Result](#result) 
   - [Analysis](#analysis)
   - [Conclusion](#conclusion)
 
@@ -174,4 +174,12 @@ loo(rent_model)            # Leave-one-out cross-validation
 
 
 #  Result
+## 1st simulation
+### Independent Variables
+![Independent Variables](IMG/MCMC.png)
+### 1st Simulation Sigma
+![Sigma](IMG/MCMC_sigma.png)
+
+
+
 
